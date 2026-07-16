@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"mira/internal/httpclient"
 )
@@ -29,6 +31,9 @@ func main() {
 	}
 	client := httpclient.New(apiURL)
 
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	switch cmd := os.Args[1]; cmd {
 	case "add":
 		if len(os.Args) < 4 {
@@ -36,14 +41,14 @@ func main() {
 			os.Exit(2)
 		}
 		title, content := os.Args[2], os.Args[3]
-		n, err := client.CreateNote(title, content, nil)
+		n, err := client.CreateNote(ctx, title, content, nil)
 		if err != nil {
 			log.Fatalf("create note: %v", err)
 		}
 		fmt.Println("Saved:", n.ID, "(enrichment:", n.EnrichmentStatus+")")
 
 	case "list":
-		list, err := client.ListNotes()
+		list, err := client.ListNotes(ctx, 20)
 		if err != nil {
 			log.Fatalf("list notes: %v", err)
 		}
@@ -54,7 +59,7 @@ func main() {
 			fmt.Println("search requires a query")
 			os.Exit(2)
 		}
-		list, err := client.Search(os.Args[2])
+		list, err := client.Search(ctx, os.Args[2], 20)
 		if err != nil {
 			log.Fatalf("search: %v", err)
 		}

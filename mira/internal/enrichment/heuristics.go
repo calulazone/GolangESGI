@@ -51,7 +51,6 @@ func summarize(content string) string {
 	if content == "" {
 		return ""
 	}
-	// First sentence, capped to keep summaries short.
 	end := strings.IndexAny(content, ".!?")
 	summary := content
 	if end != -1 {

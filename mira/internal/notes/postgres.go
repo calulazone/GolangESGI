@@ -183,8 +183,6 @@ func (s *PostgresStore) Update(ctx context.Context, id string, input UpdateNoteI
 	}
 
 	now := time.Now().UTC()
-	// Re-enriching is required whenever title/content changes, so any
-	// content-affecting update flips the note back to "pending".
 	contentChanged := input.Title != nil || input.Content != nil
 
 	if input.Title != nil {

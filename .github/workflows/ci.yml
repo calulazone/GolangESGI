@@ -1,0 +1,50 @@
+name: Go CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  check:
+    name: Check Go Code
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: [".", "mira", "mira_old"]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '>=1.21'
+          cache: true
+
+      - name: Verify dependencies
+        run: |
+          cd ${{ matrix.module }}
+          go mod download
+
+      - name: Check Formatting (go fmt)
+        run: |
+          cd ${{ matrix.module }}
+          # Check if there are any unformatted Go files
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "Unformatted files found:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Vet Code (go vet)
+        run: |
+          cd ${{ matrix.module }}
+          go vet ./...
+
+      - name: Run Tests (go test)
+        run: |
+          cd ${{ matrix.module }}
+          go test -v ./...

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -103,7 +104,7 @@ func (h *Handler) createNote(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) listNotes(w http.ResponseWriter, r *http.Request) {
-	list, err := h.store.List(r.Context(), 100)
+	list, err := h.store.List(r.Context(), parseLimit(r, 20))
 	if err != nil {
 		h.writeJSON(w, http.StatusInternalServerError, errorResponse("could not list notes"))
 		return
@@ -177,12 +178,26 @@ func (h *Handler) searchNotes(w http.ResponseWriter, r *http.Request) {
 		queryEmbedding = emb
 	}
 
-	results, err := h.store.SearchHybrid(r.Context(), q, queryEmbedding, 20)
+	results, err := h.store.SearchHybrid(r.Context(), q, queryEmbedding, parseLimit(r, 20))
 	if err != nil {
 		h.writeJSON(w, http.StatusInternalServerError, errorResponse("search failed"))
 		return
 	}
 	h.writeJSON(w, http.StatusOK, successResponse(results))
+}
+
+// parseLimit reads an optional ?limit= query parameter, falling back to
+// def when absent, invalid, or non-positive.
+func parseLimit(r *http.Request, def int) int {
+	raw := r.URL.Query().Get("limit")
+	if raw == "" {
+		return def
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil || n <= 0 {
+		return def
+	}
+	return n
 }
 
 func (h *Handler) respondStoreErr(w http.ResponseWriter, err error, notFoundMsg string) {
